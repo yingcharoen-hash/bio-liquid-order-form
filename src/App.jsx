@@ -5,13 +5,22 @@ import './index.css';
 // URLs
 const USERS_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTOeBTcG5H5NUM24qhWDyxIl9yVqL2ql3lcHHJIzUbHcA7n_Ry5R9JTOfOXiXWiFrME0X2a7M5bqvX8/pub?gid=584278207&single=true&output=csv';
 
-// Placeholder for GAS Web App URL
+// GAS Web App URL
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbwmTGd5mL2GEerxo3kSseLCohf9R1k8o8EsuUlHb_BiL_Zzl_tz5UQety7_hGla_AcVUg/exec';
 
-// Drive image IDs (extracted from the provided view links)
+// Image references
 const IMG_DATE = 'https://drive.google.com/uc?export=view&id=1w_ElvpqzEtiloT54fV_rJGDP-4bKJDTa';
 const IMG_SEARCH = 'https://drive.google.com/uc?export=view&id=14mH_yCRAI-v_E8HxNzlMgOYpI8m4dSTv';
 const IMG_PHONE = 'https://drive.google.com/uc?export=view&id=1UA0YESX5K_Qw_Pcoya3jl9XRNmYQukSZ';
+
+// Product Catalog
+const CATALOG = [
+  { id: 'p1', name: 'น้ำยาชีวภาพขนาดใหญ่ 3.8 ลิตร', price: 160, hasScent: true, unit: 'แกลลอน' },
+  { id: 'p2', name: 'น้ำยาชีวภาพขนาดเล็ก 1 ลิตร', price: 68, hasScent: true, unit: 'แกลลอน' },
+  { id: 'p3', name: 'จุลินทรีย์ผงขนาด 1 กิโล', price: 332, hasScent: false, unit: 'ถุง' }
+];
+
+const SCENTS = ['มะกรูด', 'มะนาว', 'สับปะรด'];
 
 function App() {
   const [users, setUsers] = useState([]);
@@ -23,7 +32,14 @@ function App() {
   const [searchResults, setSearchResults] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [phone, setPhone] = useState('');
-  const [quantity, setQuantity] = useState(1);
+
+  // Cart State
+  const [cart, setCart] = useState([]);
+  
+  // File State
+  const [slipFile, setSlipFile] = useState(null);
+  const [slipBase64, setSlipBase64] = useState('');
+  const [slipMimeType, setSlipMimeType] = useState('');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -32,12 +48,10 @@ function App() {
   const searchRef = useRef(null);
 
   useEffect(() => {
-    // Fetch and parse users CSV
     Papa.parse(USERS_CSV_URL, {
       download: true,
       header: true,
       complete: (results) => {
-        // Filter out empty rows
         const validUsers = results.data.filter(row => row.name || row.ShopName || row.BoothCode || row.CustCode);
         setUsers(validUsers);
         setLoadingUsers(false);
@@ -49,7 +63,6 @@ function App() {
       }
     });
 
-    // Close autocomplete on click outside
     const handleClickOutside = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
         setSearchResults([]);
@@ -62,7 +75,6 @@ function App() {
   const handleSearch = (e) => {
     const val = e.target.value;
     setSearchTerm(val);
-    
     if (val.length > 1) {
       const lowerVal = val.toLowerCase();
       const results = users.filter(u => 
@@ -71,7 +83,7 @@ function App() {
         (u.BoothCode && u.BoothCode.toLowerCase().includes(lowerVal)) ||
         (u.CustCode && u.CustCode.toLowerCase().includes(lowerVal))
       );
-      setSearchResults(results.slice(0, 10)); // Limit to 10 results
+      setSearchResults(results.slice(0, 10));
     } else {
       setSearchResults([]);
     }
@@ -87,6 +99,48 @@ function App() {
     setSelectedUser(null);
   };
 
+  // --- Cart Logic ---
+  const addToCart = (product) => {
+    setCart([...cart, { 
+      ...product, 
+      cartId: Math.random().toString(), 
+      quantity: 1,
+      selectedScent: product.hasScent ? SCENTS[0] : null
+    }]);
+  };
+
+  const updateCartItem = (cartId, field, value) => {
+    setCart(cart.map(item => item.cartId === cartId ? { ...item, [field]: value } : item));
+  };
+
+  const removeCartItem = (cartId) => {
+    setCart(cart.filter(item => item.cartId !== cartId));
+  };
+
+  const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+  // --- File Upload Logic ---
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert("ไฟล์ภาพใหญ่เกินไป (จำกัด 5MB)");
+        e.target.value = '';
+        return;
+      }
+      setSlipFile(file);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUrl = event.target.result; // data:image/png;base64,iVBORw0KGgo...
+        const base64Str = dataUrl.split(',')[1];
+        const mime = dataUrl.split(';')[0].split(':')[1];
+        setSlipBase64(base64Str);
+        setSlipMimeType(mime);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
@@ -95,24 +149,25 @@ function App() {
       setErrorMsg('กรุณาค้นหาและเลือกร้านค้าของคุณก่อน');
       return;
     }
-    
     if (!phone) {
       setErrorMsg('กรุณากรอกเบอร์โทรติดต่อ');
       return;
     }
-
-    if (GAS_URL.includes('ใส่_WEB_APP_URL')) {
-      alert("⚠️ สำหรับแอดมิน: กรุณานำ Web App URL ของ Google Apps Script มาใส่ในไฟล์ App.jsx ที่ตัวแปร GAS_URL ก่อนจึงจะบันทึกได้");
-      // Simulate success for demo if URL not set
-      setIsSubmitting(true);
-      setTimeout(() => {
-        setIsSubmitting(false);
-        setSubmitSuccess(true);
-      }, 1000);
+    if (cart.length === 0) {
+      setErrorMsg('กรุณาเลือกสินค้าที่ต้องการสั่งซื้ออย่างน้อย 1 รายการ');
+      return;
+    }
+    if (!slipBase64) {
+      setErrorMsg('กรุณาแนบสลิปโอนเงิน');
       return;
     }
 
     setIsSubmitting(true);
+
+    // Format order summary string
+    const summaryList = cart.map(item => 
+      `${item.name}${item.hasScent ? ` (กลิ่น${item.selectedScent})` : ''} x${item.quantity} ${item.unit}`
+    ).join(' | ');
 
     const payload = {
       orderDate,
@@ -121,15 +176,15 @@ function App() {
       shopName: selectedUser.ShopName,
       name: selectedUser.name,
       phone,
-      quantity
+      orderSummary: summaryList,
+      totalPrice: totalPrice,
+      slipBase64: slipBase64,
+      slipMimeType: slipMimeType
     };
 
     try {
       const response = await fetch(GAS_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(payload)
       });
 
@@ -140,7 +195,7 @@ function App() {
         setErrorMsg('เกิดข้อผิดพลาดในการบันทึก: ' + result.message);
       }
     } catch (err) {
-      setErrorMsg('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
+      setErrorMsg('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ หรือเซิร์ฟเวอร์ไม่ได้เปิดสิทธิ์ CORS (อนุญาตให้ข้ามโดเมน)');
     } finally {
       setIsSubmitting(false);
     }
@@ -152,9 +207,9 @@ function App() {
         <div className="glass-card success-message">
           <div className="success-icon">✅</div>
           <h2>สั่งซื้อสำเร็จ!</h2>
-          <p>ระบบได้บันทึกข้อมูลการสั่งซื้อน้ำยาชีวภาพเรียบร้อยแล้ว</p>
+          <p>ระบบได้บันทึกข้อมูลการสั่งซื้อและสลิปเงินของคุณเรียบร้อยแล้ว</p>
           <button className="btn-submit" onClick={() => window.location.reload()} style={{ marginTop: '20px', width: 'auto', padding: '10px 20px' }}>
-            สั่งซื้ออีกครั้ง
+            สั่งซื้อเพิ่ม
           </button>
         </div>
       </div>
@@ -165,29 +220,19 @@ function App() {
     <div className="app-container">
       <div className="glass-card">
         <h1>สั่งซื้อน้ำยาชีวภาพ</h1>
-        <p className="subtitle">กรุณากรอกข้อมูลเพื่อสั่งซื้อน้ำยาชีวภาพ</p>
+        <p className="subtitle">กรอกข้อมูล เลือกสินค้า และแนบสลิปเพื่อยืนยัน</p>
         
-        {errorMsg && <div style={{ color: 'red', marginBottom: '15px', textAlign: 'center', background: '#ffebee', padding: '10px', borderRadius: '8px' }}>{errorMsg}</div>}
+        {errorMsg && <div className="error-box">{errorMsg}</div>}
 
         <form onSubmit={handleSubmit}>
           
-          {/* 1. Date */}
           <div className="form-group">
             <label className="required">1. วันที่สั่งซื้อ</label>
-            <input 
-              type="date" 
-              value={orderDate}
-              onChange={(e) => setOrderDate(e.target.value)}
-              required
-            />
-            {/* Image reference */}
-            <img src={IMG_DATE} alt="Date Step" className="reference-image" onError={(e) => e.target.style.display='none'} />
+            <input type="date" value={orderDate} onChange={(e) => setOrderDate(e.target.value)} required />
           </div>
 
-          {/* 2. Customer Search */}
           <div className="form-group" ref={searchRef}>
             <label className="required">2. ค้นหาข้อมูลร้านค้า / รหัสลูกค้า / รหัสแผง</label>
-            
             {loadingUsers ? (
               <div style={{ padding: '10px', color: '#666' }}>กำลังโหลดฐานข้อมูล...</div>
             ) : !selectedUser ? (
@@ -208,7 +253,6 @@ function App() {
                     ))}
                   </div>
                 )}
-                <img src={IMG_SEARCH} alt="Search Step" className="reference-image" onError={(e) => e.target.style.display='none'} />
               </>
             ) : (
               <div className="selected-card">
@@ -222,33 +266,99 @@ function App() {
             )}
           </div>
 
-          {/* 3. Phone */}
           <div className="form-group">
             <label className="required">3. เบอร์โทรติดต่อ</label>
-            <input 
-              type="tel" 
-              placeholder="08X-XXX-XXXX"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              required
-            />
-            <img src={IMG_PHONE} alt="Phone Step" className="reference-image" onError={(e) => e.target.style.display='none'} />
+            <input type="tel" placeholder="08X-XXX-XXXX" value={phone} onChange={(e) => setPhone(e.target.value)} required />
           </div>
 
-          {/* 4. Quantity */}
-          <div className="form-group">
-            <label className="required">4. จำนวนน้ำยาชีวภาพที่ต้องการ (แกลลอน/ขวด)</label>
-            <input 
-              type="number" 
-              min="1"
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-              required
-            />
+          {/* Catalog Section */}
+          <div className="form-group catalog-section">
+            <label className="required">4. เลือกสินค้าที่ต้องการ</label>
+            <div className="product-list">
+              {CATALOG.map(prod => (
+                <div className="product-item" key={prod.id}>
+                  <div className="product-info">
+                    <strong>{prod.name}</strong>
+                    <span className="price-tag">{prod.price} บาท/{prod.unit}</span>
+                  </div>
+                  <button type="button" className="btn-add" onClick={() => addToCart(prod)}>
+                    + เพิ่ม
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <button type="submit" className="btn-submit" disabled={isSubmitting || !selectedUser || !phone}>
-            {isSubmitting ? <><span className="loader"></span> กำลังส่งข้อมูล...</> : 'ยืนยันการสั่งซื้อ'}
+          {/* Cart Items */}
+          {cart.length > 0 && (
+            <div className="cart-container">
+              <h3>ตะกร้าสินค้าของคุณ</h3>
+              {cart.map((item) => (
+                <div className="cart-item" key={item.cartId}>
+                  <div className="cart-item-header">
+                    <strong>{item.name}</strong>
+                    <button type="button" className="btn-remove" onClick={() => removeCartItem(item.cartId)}>ลบ</button>
+                  </div>
+                  <div className="cart-item-controls">
+                    {item.hasScent && (
+                      <select 
+                        value={item.selectedScent} 
+                        onChange={(e) => updateCartItem(item.cartId, 'selectedScent', e.target.value)}
+                        className="scent-select"
+                      >
+                        {SCENTS.map(scent => <option key={scent} value={scent}>กลิ่น{scent}</option>)}
+                      </select>
+                    )}
+                    <div className="qty-control">
+                      <span>จำนวน ({item.unit}):</span>
+                      <input 
+                        type="number" 
+                        min="1" 
+                        value={item.quantity} 
+                        onChange={(e) => updateCartItem(item.cartId, 'quantity', parseInt(e.target.value) || 1)}
+                        className="qty-input"
+                      />
+                    </div>
+                  </div>
+                  <div className="cart-item-price">
+                    รวม: {item.price * item.quantity} บาท
+                  </div>
+                </div>
+              ))}
+              
+              <div className="total-summary">
+                <span>ยอดชำระเงินรวมทั้งสิ้น:</span>
+                <h2>{totalPrice} บาท</h2>
+              </div>
+            </div>
+          )}
+
+          {/* Payment Section */}
+          {totalPrice > 0 && (
+            <div className="payment-section">
+              <label className="required">5. ชำระเงินและแนบสลิป</label>
+              <div className="bank-card">
+                <div className="bank-logo">KTB</div>
+                <div className="bank-details">
+                  <strong>ธนาคารกรุงไทย</strong>
+                  <p>บจก.สุวพีร์โฮลดิ้ง 2</p>
+                  <h3>976-0-40781-7</h3>
+                </div>
+              </div>
+              <p style={{marginTop: '10px', fontSize: '0.9rem', color: '#555'}}>ยอดที่ต้องโอน: <strong>{totalPrice} บาท</strong></p>
+              
+              <div className="file-upload-wrapper">
+                <label className="file-upload-btn">
+                  แนบสลิปโอนเงิน
+                  <input type="file" accept="image/*" onChange={handleFileChange} />
+                </label>
+                {slipFile && <span className="file-name">📎 {slipFile.name}</span>}
+              </div>
+            </div>
+          )}
+
+          <button type="submit" className="btn-submit" disabled={isSubmitting || !selectedUser || !phone || cart.length === 0 || !slipBase64}>
+            {isSubmitting ? <><span className="loader"></span> กำลังบันทึกข้อมูลและอัปโหลด...</> : 'ยืนยันสั่งซื้อ'}
           </button>
 
         </form>
