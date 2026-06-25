@@ -46,13 +46,18 @@ const PRODUCT_IMAGES = {
   }
 };
 
-function ProductItem({ prod, onAdd }) {
+function ProductItem({ prod, onAdd, onPreview }) {
   const [selectedScent, setSelectedScent] = useState(SCENTS[0]);
   const currentImage = prod.hasScent ? PRODUCT_IMAGES[prod.id][selectedScent] : PRODUCT_IMAGES[prod.id].default;
 
   return (
     <div className="product-item">
-      <img src={currentImage} alt={prod.name} className="product-image" />
+      <img 
+        src={currentImage} 
+        alt={prod.name} 
+        className="product-image clickable-image" 
+        onClick={() => onPreview(currentImage)}
+      />
       <div className="product-info">
         <strong>{prod.name}</strong>
         <span className="price-tag" style={{display: 'block', marginBottom: '5px'}}>{prod.price} บาท/{prod.unit}</span>
@@ -91,6 +96,9 @@ function App() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  
+  // Image Preview State
+  const [previewImage, setPreviewImage] = useState(null);
 
   const searchRef = useRef(null);
 
@@ -268,6 +276,16 @@ function App() {
 
   return (
     <div className="app-container">
+      {/* Image Preview Modal */}
+      {previewImage && (
+        <div className="image-modal-overlay" onClick={() => setPreviewImage(null)}>
+          <div className="image-modal-content" onClick={e => e.stopPropagation()}>
+            <button className="btn-close-modal" onClick={() => setPreviewImage(null)}>✕</button>
+            <img src={previewImage} alt="Preview" className="preview-large-image" />
+          </div>
+        </div>
+      )}
+
       <div className="glass-card">
         <h1>สั่งซื้อน้ำยาชีวภาพ</h1>
         <p className="subtitle">กรอกข้อมูล เลือกสินค้า และแนบสลิปเพื่อยืนยัน</p>
@@ -326,7 +344,7 @@ function App() {
             <label className="required">4. เลือกสินค้าที่ต้องการ</label>
             <div className="product-list">
               {CATALOG.map(prod => (
-                <ProductItem key={prod.id} prod={prod} onAdd={addToCart} />
+                <ProductItem key={prod.id} prod={prod} onAdd={addToCart} onPreview={setPreviewImage} />
               ))}
             </div>
           </div>
