@@ -6,7 +6,7 @@ import './index.css';
 const USERS_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTOeBTcG5H5NUM24qhWDyxIl9yVqL2ql3lcHHJIzUbHcA7n_Ry5R9JTOfOXiXWiFrME0X2a7M5bqvX8/pub?gid=584278207&single=true&output=csv';
 
 // GAS Web App URL
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbz9leqx_RQ7PPst9UEIHIDZfwA0wg2pJfdslIgaRbwU_d3o0Xmu8vczhX12jywNnqBt8g/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzI9weEJZDJIpIHAOOm8-2p0a78arTlJM5ocqpncuDuBInqVU9vLOCm0nJn1icps25gTw/exec';
 
 // Image references
 const IMG_DATE = 'https://drive.google.com/uc?export=view&id=1w_ElvpqzEtiloT54fV_rJGDP-4bKJDTa';
