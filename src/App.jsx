@@ -14,17 +14,58 @@ const IMG_SEARCH = 'https://drive.google.com/uc?export=view&id=14mH_yCRAI-v_E8Hx
 const IMG_PHONE = 'https://drive.google.com/uc?export=view&id=1UA0YESX5K_Qw_Pcoya3jl9XRNmYQukSZ';
 
 import img1 from './assets/img1.jpg';
+import img2 from './assets/img2.jpg';
+import img3 from './assets/img3.jpg';
 import img4 from './assets/img4.jpg';
 import img5 from './assets/img5.jpg';
 
 // Product Catalog
 const CATALOG = [
-  { id: 'p1', name: 'น้ำยาชีวภาพขนาดใหญ่ 3.8 ลิตร', price: 160, hasScent: true, unit: 'แกลลอน', image: img5 },
-  { id: 'p2', name: 'น้ำยาชีวภาพขนาดเล็ก 1 ลิตร', price: 68, hasScent: true, unit: 'แกลลอน', image: img4 },
-  { id: 'p3', name: 'จุลินทรีย์ผงขนาด 1 กิโล', price: 332, hasScent: false, unit: 'ถุง', image: img1 }
+  { id: 'p1', name: 'น้ำยาชีวภาพขนาดใหญ่ 3.8 ลิตร', price: 160, hasScent: true, unit: 'แกลลอน' },
+  { id: 'p2', name: 'น้ำยาชีวภาพขนาดเล็ก 1 ลิตร', price: 68, hasScent: true, unit: 'แกลลอน' },
+  { id: 'p3', name: 'จุลินทรีย์ผงขนาด 1 กิโล', price: 332, hasScent: false, unit: 'ถุง' }
 ];
 
 const SCENTS = ['มะกรูด', 'มะนาว', 'สับปะรด'];
+
+const PRODUCT_IMAGES = {
+  p1: {
+    'มะกรูด': img5, // (ใช้รูปแทนไปก่อนจนกว่าจะมีรูปจริง 3.8L กลิ่นอื่น)
+    'มะนาว': img5,
+    'สับปะรด': img5
+  },
+  p2: {
+    'มะกรูด': img2,
+    'มะนาว': img3,
+    'สับปะรด': img4
+  },
+  p3: {
+    default: img1
+  }
+};
+
+function ProductItem({ prod, onAdd }) {
+  const [selectedScent, setSelectedScent] = useState(SCENTS[0]);
+  const currentImage = prod.hasScent ? PRODUCT_IMAGES[prod.id][selectedScent] : PRODUCT_IMAGES[prod.id].default;
+
+  return (
+    <div className="product-item">
+      <img src={currentImage} alt={prod.name} className="product-image" />
+      <div className="product-info">
+        <strong>{prod.name}</strong>
+        <span className="price-tag" style={{display: 'block', marginBottom: '5px'}}>{prod.price} บาท/{prod.unit}</span>
+        {prod.hasScent && (
+          <select value={selectedScent} onChange={e => setSelectedScent(e.target.value)} className="scent-select">
+            {SCENTS.map(scent => <option key={scent} value={scent}>กลิ่น{scent}</option>)}
+          </select>
+        )}
+      </div>
+      <button type="button" className="btn-add" onClick={() => onAdd(prod, selectedScent)}>
+        + เพิ่ม
+      </button>
+    </div>
+  );
+}
 
 function App() {
   const [users, setUsers] = useState([]);
@@ -106,12 +147,12 @@ function App() {
   };
 
   // --- Cart Logic ---
-  const addToCart = (product) => {
+  const addToCart = (product, scent) => {
     setCart([...cart, { 
       ...product, 
       cartId: Math.random().toString(), 
       quantity: 1,
-      selectedScent: product.hasScent ? SCENTS[0] : null
+      selectedScent: product.hasScent ? scent : null
     }]);
   };
 
@@ -183,6 +224,7 @@ function App() {
       name: selectedUser.name,
       phone,
       orderSummary: summaryList,
+      cartItems: cart,
       totalPrice: totalPrice,
       slipBase64: slipBase64,
       slipMimeType: slipMimeType
@@ -282,16 +324,7 @@ function App() {
             <label className="required">4. เลือกสินค้าที่ต้องการ</label>
             <div className="product-list">
               {CATALOG.map(prod => (
-                <div className="product-item" key={prod.id}>
-                  <img src={prod.image} alt={prod.name} className="product-image" />
-                  <div className="product-info">
-                    <strong>{prod.name}</strong>
-                    <span className="price-tag">{prod.price} บาท/{prod.unit}</span>
-                  </div>
-                  <button type="button" className="btn-add" onClick={() => addToCart(prod)}>
-                    + เพิ่ม
-                  </button>
-                </div>
+                <ProductItem key={prod.id} prod={prod} onAdd={addToCart} />
               ))}
             </div>
           </div>

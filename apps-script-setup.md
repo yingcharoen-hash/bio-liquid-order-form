@@ -57,21 +57,43 @@ function doPost(e) {
     // เปิด Google Sheet เป้าหมาย
     const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
     
-    // ลำดับ: วันที่, รหัสลูกค้า, รหัสร้าน, ชื่อร้าน, ชื่อลูกค้า, เบอร์โทร, รายการสินค้า, ยอดรวม, ลิงก์สลิป
-    const rowData = [
-      data.orderDate || "",
-      data.custCode || "",
-      data.boothCode || "",
-      data.shopName || "",
-      data.name || "",
-      data.phone || "",
-      data.orderSummary || "",  // รายละเอียดสินค้าที่สั่ง (เช่น น้ำยา 3.8L มะกรูด 1, จุลินทรีย์ 2)
-      data.totalPrice || 0,     // ยอดรวม
-      slipUrl,                  // ลิงก์รูปสลิป
-      new Date()                // Timestamp
-    ];
-    
-    sheet.appendRow(rowData);
+    // data.cartItems เป็น Array ของสินค้าที่สั่งซื้อ
+    // วนลูปเพื่อบันทึกแต่ละรายการเป็น 1 แถว (Transaction)
+    if (data.cartItems && data.cartItems.length > 0) {
+      data.cartItems.forEach(item => {
+        const itemDetail = item.name + (item.hasScent ? " (กลิ่น" + item.selectedScent + ")" : "");
+        const rowData = [
+          data.orderDate || "",
+          data.custCode || "",
+          data.boothCode || "",
+          data.shopName || "",
+          data.name || "",
+          data.phone || "",
+          itemDetail,              // ชื่อสินค้าและกลิ่น
+          item.quantity || 1,      // จำนวน
+          item.price * item.quantity, // ราคารวมของรายการนี้
+          slipUrl,                 // ลิงก์รูปสลิป
+          new Date()               // Timestamp
+        ];
+        sheet.appendRow(rowData);
+      });
+    } else {
+      // กรณีไม่มีตะกร้า (เผื่อไว้)
+      const rowData = [
+        data.orderDate || "",
+        data.custCode || "",
+        data.boothCode || "",
+        data.shopName || "",
+        data.name || "",
+        data.phone || "",
+        data.orderSummary || "",  
+        1,
+        data.totalPrice || 0,     
+        slipUrl,                  
+        new Date()                
+      ];
+      sheet.appendRow(rowData);
+    }
     
     return ContentService.createTextOutput(JSON.stringify({ status: "success", message: "Saved successfully!" }))
       .setMimeType(ContentService.MimeType.JSON);
