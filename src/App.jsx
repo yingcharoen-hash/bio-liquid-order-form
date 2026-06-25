@@ -30,9 +30,9 @@ const SCENTS = ['มะกรูด', 'มะนาว', 'สับปะรด'
 
 const PRODUCT_IMAGES = {
   p1: {
-    'มะกรูด': img5, // (ใช้รูปแทนไปก่อนจนกว่าจะมีรูปจริง 3.8L กลิ่นอื่น)
-    'มะนาว': img5,
-    'สับปะรด': img5
+    'มะกรูด': img2, // ใช้รูปขวดเล็กไปก่อนเพื่อให้แสดงผลว่าเปลี่ยน
+    'มะนาว': img3,  // ใช้รูปขวดเล็กไปก่อนเพื่อให้แสดงผลว่าเปลี่ยน
+    'สับปะรด': img5 // รูปขวดใหญ่สับปะรด
   },
   p2: {
     'มะกรูด': img2,
@@ -354,8 +354,17 @@ function App() {
                       <input 
                         type="number" 
                         min="1" 
-                        value={item.quantity} 
-                        onChange={(e) => updateCartItem(item.cartId, 'quantity', parseInt(e.target.value) || 1)}
+                        value={item.quantity === '' ? '' : item.quantity} 
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          updateCartItem(item.cartId, 'quantity', val === '' ? '' : (parseInt(val) || 1));
+                        }}
+                        onBlur={(e) => {
+                          // ถ้าผู้ใช้ปล่อยช่องว่างไว้แล้วเอาเมาส์ออก ให้กลับมาเป็น 1
+                          if (item.quantity === '' || item.quantity < 1) {
+                            updateCartItem(item.cartId, 'quantity', 1);
+                          }
+                        }}
                         className="qty-input"
                       />
                     </div>
