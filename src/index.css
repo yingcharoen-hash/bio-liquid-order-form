@@ -121,6 +121,19 @@ input:focus, select:focus {
   padding: 15px;
   border-radius: 12px;
   border: 1px solid #e0e0e0;
+  gap: 15px;
+}
+
+.product-image {
+  width: 70px;
+  height: 70px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #eee;
+}
+
+.product-info {
+  flex: 1;
 }
 
 .product-info strong {

@@ -13,11 +13,15 @@ const IMG_DATE = 'https://drive.google.com/uc?export=view&id=1w_ElvpqzEtiloT54fV
 const IMG_SEARCH = 'https://drive.google.com/uc?export=view&id=14mH_yCRAI-v_E8HxNzlMgOYpI8m4dSTv';
 const IMG_PHONE = 'https://drive.google.com/uc?export=view&id=1UA0YESX5K_Qw_Pcoya3jl9XRNmYQukSZ';
 
+import img1 from './assets/img1.jpg';
+import img4 from './assets/img4.jpg';
+import img5 from './assets/img5.jpg';
+
 // Product Catalog
 const CATALOG = [
-  { id: 'p1', name: 'น้ำยาชีวภาพขนาดใหญ่ 3.8 ลิตร', price: 160, hasScent: true, unit: 'แกลลอน' },
-  { id: 'p2', name: 'น้ำยาชีวภาพขนาดเล็ก 1 ลิตร', price: 68, hasScent: true, unit: 'แกลลอน' },
-  { id: 'p3', name: 'จุลินทรีย์ผงขนาด 1 กิโล', price: 332, hasScent: false, unit: 'ถุง' }
+  { id: 'p1', name: 'น้ำยาชีวภาพขนาดใหญ่ 3.8 ลิตร', price: 160, hasScent: true, unit: 'แกลลอน', image: img5 },
+  { id: 'p2', name: 'น้ำยาชีวภาพขนาดเล็ก 1 ลิตร', price: 68, hasScent: true, unit: 'แกลลอน', image: img4 },
+  { id: 'p3', name: 'จุลินทรีย์ผงขนาด 1 กิโล', price: 332, hasScent: false, unit: 'ถุง', image: img1 }
 ];
 
 const SCENTS = ['มะกรูด', 'มะนาว', 'สับปะรด'];
@@ -52,7 +56,10 @@ function App() {
       download: true,
       header: true,
       complete: (results) => {
-        const validUsers = results.data.filter(row => row.name || row.ShopName || row.BoothCode || row.CustCode);
+        const validUsers = results.data.filter(row => 
+          (row.name || row.ShopName || row.CustCode) && 
+          (row.ContractStatus && row.ContractStatus.toLowerCase() === 'cancelled')
+        );
         setUsers(validUsers);
         setLoadingUsers(false);
       },
@@ -80,7 +87,6 @@ function App() {
       const results = users.filter(u => 
         (u.name && u.name.toLowerCase().includes(lowerVal)) ||
         (u.ShopName && u.ShopName.toLowerCase().includes(lowerVal)) ||
-        (u.BoothCode && u.BoothCode.toLowerCase().includes(lowerVal)) ||
         (u.CustCode && u.CustCode.toLowerCase().includes(lowerVal))
       );
       setSearchResults(results.slice(0, 10));
@@ -247,8 +253,8 @@ function App() {
                   <div className="search-results">
                     {searchResults.map((user, idx) => (
                       <div key={idx} className="search-item" onClick={() => handleSelectUser(user)}>
-                        <div className="search-item-title">{user.ShopName || 'ไม่มีชื่อร้าน'} ({user.BoothCode})</div>
-                        <div className="search-item-desc">ผู้เช่า: {user.name} | รหัส: {user.CustCode}</div>
+                        <div className="search-item-title">{user.ShopName || 'ไม่มีชื่อร้าน'}</div>
+                        <div className="search-item-desc">ผู้เช่า: {user.name} | รหัสลูกค้า: {user.CustCode}</div>
                       </div>
                     ))}
                   </div>
@@ -258,8 +264,8 @@ function App() {
               <div className="selected-card">
                 <div className="selected-info">
                   <div><strong>ร้าน:</strong> {selectedUser.ShopName || '-'}</div>
-                  <div><strong>รหัสบูธ:</strong> {selectedUser.BoothCode}</div>
                   <div><strong>ผู้เช่า:</strong> {selectedUser.name}</div>
+                  <div><strong>รหัสลูกค้า:</strong> {selectedUser.CustCode}</div>
                 </div>
                 <button type="button" className="btn-clear" onClick={clearSelection}>เปลี่ยน</button>
               </div>
@@ -277,6 +283,7 @@ function App() {
             <div className="product-list">
               {CATALOG.map(prod => (
                 <div className="product-item" key={prod.id}>
+                  <img src={prod.image} alt={prod.name} className="product-image" />
                   <div className="product-info">
                     <strong>{prod.name}</strong>
                     <span className="price-tag">{prod.price} บาท/{prod.unit}</span>
