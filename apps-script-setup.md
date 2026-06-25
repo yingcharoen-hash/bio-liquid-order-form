@@ -12,8 +12,8 @@
 
 ```javascript
 // 1. นำ ID ของ Google Sheet ของคุณมาใส่ตรงนี้เหมือนเดิม
-const SPREADSHEET_ID = "ใส่_SPREADSHEET_ID_ตรงนี้";
-const SHEET_NAME = "Sheet1"; // เปลี่ยนชื่อ Sheet ย่อยตามของคุณ
+const SPREADSHEET_ID = "1JJ66rsC8yfZ1Jw26C9FvpNmX4FAj0fOdgqbWax8BTWk";
+const SHEET_NAME = "การตอบกลับแบบฟอร์ม 1"; // เปลี่ยนชื่อ Sheet ย่อยตามของคุณ
 
 // 2. ID ของโฟลเดอร์เก็บสลิป (ที่คุณเพิ่งสร้าง)
 const FOLDER_ID = "1bMoc_AI0ssP2FTUZWYHYwRPA_sb4Yu1v";
@@ -50,7 +50,7 @@ function doPost(e) {
         file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
         slipUrl = file.getUrl();
       } catch(imgErr) {
-        slipUrl = "เกิดข้อผิดพลาดในการบันทึกสลิป";
+        slipUrl = "เกิดข้อผิดพลาดในการบันทึกสลิป: " + imgErr.toString();
       }
     }
     
