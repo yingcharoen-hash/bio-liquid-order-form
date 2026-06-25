@@ -58,7 +58,7 @@ function App() {
       complete: (results) => {
         const validUsers = results.data.filter(row => 
           (row.name || row.ShopName || row.CustCode) && 
-          (row.ContractStatus && row.ContractStatus.toLowerCase() === 'cancelled')
+          (row.ContractStatus && row.ContractStatus.toLowerCase() === 'active')
         );
         setUsers(validUsers);
         setLoadingUsers(false);
@@ -238,14 +238,14 @@ function App() {
           </div>
 
           <div className="form-group" ref={searchRef}>
-            <label className="required">2. ค้นหาข้อมูลร้านค้า / รหัสลูกค้า / รหัสแผง</label>
+            <label className="required">2. ค้นหาข้อมูลร้านค้า / รหัสลูกค้า</label>
             {loadingUsers ? (
               <div style={{ padding: '10px', color: '#666' }}>กำลังโหลดฐานข้อมูล...</div>
             ) : !selectedUser ? (
               <>
                 <input 
                   type="text" 
-                  placeholder="พิมพ์ชื่อร้าน, รหัสบูธ (เช่น 0101) หรือรหัสลูกค้า..."
+                  placeholder="พิมพ์ชื่อร้าน หรือ รหัสลูกค้า..."
                   value={searchTerm}
                   onChange={handleSearch}
                 />
