@@ -263,14 +263,22 @@ input:focus, select:focus {
 }
 
 .discount-summary {
-  color: var(--primary-color);
-  font-size: 0.85rem;
-  font-weight: 600;
-  margin-top: 5px;
-  background: #e8f5e9;
-  padding: 4px 8px;
-  border-radius: 4px;
+  color: #fff;
+  background-color: var(--error-color);
+  font-size: 0.95rem;
+  font-weight: bold;
+  margin-top: 8px;
+  padding: 6px 12px;
+  border-radius: 8px;
   display: inline-block;
+  box-shadow: 0 4px 10px rgba(211, 47, 47, 0.3);
+  animation: pulse-discount 2s infinite;
+}
+
+@keyframes pulse-discount {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+  100% { transform: scale(1); }
 }
 
 .total-summary h2 {
