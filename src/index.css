@@ -147,6 +147,13 @@ input:focus, select:focus {
   font-size: 0.9rem;
 }
 
+.original-price {
+  color: #999;
+  text-decoration: line-through;
+  font-size: 0.85rem;
+  margin-right: 8px;
+}
+
 .btn-add {
   background: #e8f5e9;
   color: var(--primary-color);
@@ -239,6 +246,22 @@ input:focus, select:focus {
   margin-top: 15px;
   padding-top: 15px;
   border-top: 2px solid var(--primary-color);
+}
+
+.summary-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.discount-summary {
+  color: var(--primary-color);
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-top: 5px;
+  background: #e8f5e9;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: inline-block;
 }
 
 .total-summary h2 {

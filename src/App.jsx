@@ -23,8 +23,8 @@ import img7 from './assets/img7.jpg';
 
 // Product Catalog
 const CATALOG = [
-  { id: 'p1', name: 'น้ำยาชีวภาพขนาดใหญ่ 3.8 ลิตร', price: 160, hasScent: true, unit: 'แกลลอน' },
-  { id: 'p2', name: 'น้ำยาชีวภาพขนาดเล็ก 1 ลิตร', price: 68, hasScent: true, unit: 'แกลลอน' },
+  { id: 'p1', name: 'น้ำยาชีวภาพขนาดใหญ่ 3.8 ลิตร', price: 160, originalPrice: 179, hasScent: true, unit: 'แกลลอน' },
+  { id: 'p2', name: 'น้ำยาชีวภาพขนาดเล็ก 1 ลิตร', price: 68, originalPrice: 79, hasScent: true, unit: 'แกลลอน' },
   { id: 'p3', name: 'จุลินทรีย์ผงขนาด 1 กิโล', price: 332, hasScent: false, unit: 'ถุง' }
 ];
 
@@ -60,7 +60,10 @@ function ProductItem({ prod, onAdd, onPreview }) {
       />
       <div className="product-info">
         <strong>{prod.name}</strong>
-        <span className="price-tag" style={{display: 'block', marginBottom: '5px'}}>{prod.price} บาท/{prod.unit}</span>
+        <div style={{ marginBottom: '5px' }}>
+          {prod.originalPrice && <span className="original-price">{prod.originalPrice}</span>}
+          <span className="price-tag">{prod.price} บาท/{prod.unit}</span>
+        </div>
         {prod.hasScent && (
           <select value={selectedScent} onChange={e => setSelectedScent(e.target.value)} className="scent-select">
             {SCENTS.map(scent => <option key={scent} value={scent}>กลิ่น{scent}</option>)}
@@ -175,6 +178,12 @@ function App() {
   };
 
   const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const totalDiscount = cart.reduce((sum, item) => {
+    if (item.originalPrice && item.originalPrice > item.price) {
+      return sum + ((item.originalPrice - item.price) * item.quantity);
+    }
+    return sum;
+  }, 0);
 
   // --- File Upload Logic ---
   const handleFileChange = (e) => {
@@ -396,7 +405,10 @@ function App() {
               ))}
               
               <div className="total-summary">
-                <span>ยอดชำระเงินรวมทั้งสิ้น:</span>
+                <div className="summary-col">
+                  <span>ยอดชำระเงินรวมทั้งสิ้น:</span>
+                  {totalDiscount > 0 && <div className="discount-summary">ประหยัดไปทั้งหมด {totalDiscount} บาท!</div>}
+                </div>
                 <h2>{totalPrice} บาท</h2>
               </div>
             </div>
