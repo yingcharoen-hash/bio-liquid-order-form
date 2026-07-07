@@ -142,9 +142,18 @@ input:focus, select:focus {
 }
 
 .price-tag {
-  color: var(--primary-color);
-  font-weight: 500;
-  font-size: 0.9rem;
+  color: var(--error-color);
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.member-badge {
+  background: var(--error-color);
+  color: white;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: bold;
 }
 
 .original-price {

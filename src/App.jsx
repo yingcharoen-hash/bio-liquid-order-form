@@ -60,9 +60,12 @@ function ProductItem({ prod, onAdd, onPreview }) {
       />
       <div className="product-info">
         <strong>{prod.name}</strong>
-        <div style={{ marginBottom: '5px' }}>
+        <div style={{ marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           {prod.originalPrice && <span className="original-price">{prod.originalPrice}</span>}
-          <span className="price-tag">{prod.price} บาท/{prod.unit}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            {prod.originalPrice && <span className="member-badge">ราคาสมาชิก</span>}
+            <span className="price-tag">{prod.price} บาท/{prod.unit}</span>
+          </div>
         </div>
         {prod.hasScent && (
           <select value={selectedScent} onChange={e => setSelectedScent(e.target.value)} className="scent-select">
