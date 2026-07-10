@@ -281,6 +281,48 @@ input:focus, select:focus {
   100% { transform: scale(1); }
 }
 
+.promo-mix-container {
+  background: #f9f9f9;
+  border: 1px dashed #ccc;
+  border-radius: 8px;
+  padding: 10px;
+  margin-top: 10px;
+}
+.promo-mix-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  font-size: 0.9rem;
+}
+.promo-mix-input {
+  width: 60px;
+  padding: 4px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.earned-points-card {
+  background: linear-gradient(135deg, #fef9e7 0%, #fcf3cf 100%);
+  border: 2px solid #f1c40f;
+  border-radius: 12px;
+  padding: 15px;
+  margin-top: 15px;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(241, 196, 15, 0.2);
+}
+.earned-points-card h3 {
+  color: #d35400;
+  margin: 5px 0;
+  font-size: 1.1rem;
+}
+.points-value {
+  color: #e67e22;
+  font-size: 1.8rem;
+  font-weight: bold;
+}
+
 .total-summary h2 {
   color: var(--error-color);
   font-size: 1.8rem;

@@ -61,7 +61,14 @@ function doPost(e) {
     // วนลูปเพื่อบันทึกแต่ละรายการเป็น 1 แถว (Transaction)
     if (data.cartItems && data.cartItems.length > 0) {
       data.cartItems.forEach(item => {
-        const itemDetail = item.name + (item.hasScent ? " (กลิ่น" + item.selectedScent + ")" : "");
+        let mixStr = '';
+        if (item.promoMix) {
+          const mixes = [];
+          for (let k in item.promoMix) { if(item.promoMix[k]>0) mixes.push(k+":"+item.promoMix[k]); }
+          if (mixes.length>0) mixStr = " (" + mixes.join(", ") + ")";
+        }
+        const itemDetail = item.name + (item.hasScent && !item.isPromo ? " (กลิ่น" + item.selectedScent + ")" : "") + mixStr;
+        
         const rowData = [
           data.orderDate || "",
           data.custCode || "",
@@ -69,11 +76,12 @@ function doPost(e) {
           data.shopName || "",
           data.name || "",
           data.phone || "",
-          itemDetail,              // ชื่อสินค้าและกลิ่น
+          itemDetail,              // ชื่อสินค้าและกลิ่น (รวมโปรโมชั่นคละกลิ่น)
           item.quantity || 1,      // จำนวน
           item.price * item.quantity, // ราคารวมของรายการนี้
           slipUrl,                 // ลิงก์รูปสลิป
-          new Date()               // Timestamp
+          new Date(),              // Timestamp
+          item.earnedPoints || 0   // [คอลัมน์ใหม่] แต้มสะสมที่ได้จากรายการนี้
         ];
         sheet.appendRow(rowData);
       });
@@ -90,7 +98,8 @@ function doPost(e) {
         1,
         data.totalPrice || 0,     
         slipUrl,                  
-        new Date()                
+        new Date(),
+        data.earnedPoints || 0
       ];
       sheet.appendRow(rowData);
     }

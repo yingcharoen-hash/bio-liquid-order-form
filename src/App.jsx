@@ -23,9 +23,11 @@ import img7 from './assets/img7.jpg';
 
 // Product Catalog
 const CATALOG = [
-  { id: 'p1', name: 'น้ำยาชีวภาพขนาดใหญ่ 3.8 ลิตร', price: 160, originalPrice: 179, hasScent: true, unit: 'แกลลอน' },
-  { id: 'p2', name: 'น้ำยาชีวภาพขนาดเล็ก 1 ลิตร', price: 68, originalPrice: 79, hasScent: true, unit: 'แกลลอน' },
-  { id: 'p3', name: 'จุลินทรีย์ผงขนาด 1 กิโล', price: 332, hasScent: false, unit: 'ถุง' }
+  { id: 'p1', name: 'น้ำยาชีวภาพขนาดใหญ่ 3.8 ลิตร', price: 160, originalPrice: 179, hasScent: true, unit: 'แกลลอน', points: 4 },
+  { id: 'p2', name: 'น้ำยาชีวภาพขนาดเล็ก 1 ลิตร', price: 68, originalPrice: 79, hasScent: true, unit: 'แกลลอน', points: 1 },
+  { id: 'p3', name: 'จุลินทรีย์ผงขนาด 1 กิโล', price: 332, hasScent: false, unit: 'ถุง', points: 0 },
+  { id: 'promo1', name: 'โปร 10 แถม 1 (1 ลิตร)', price: 680, hasScent: true, isPromo: true, promoQuantity: 11, unit: 'ชุด', points: 10 },
+  { id: 'promo2', name: 'โปร 10 แถม 1 (3.8 ลิตร)', price: 1600, hasScent: true, isPromo: true, promoQuantity: 11, unit: 'ชุด', points: 40 }
 ];
 
 const SCENTS = ['มะกรูด', 'มะนาว', 'สับปะรด'];
@@ -43,12 +45,29 @@ const PRODUCT_IMAGES = {
   },
   p3: {
     default: img1
+  },
+  promo1: {
+    default: img2 // ใช้รูปขวดเล็กเป็นหน้าปก
+  },
+  promo2: {
+    default: img7 // ใช้รูปขวดใหญ่เป็นหน้าปก
   }
 };
 
 function ProductItem({ prod, onAdd, onPreview }) {
   const [selectedScent, setSelectedScent] = useState(SCENTS[0]);
-  const currentImage = prod.hasScent ? PRODUCT_IMAGES[prod.id][selectedScent] : PRODUCT_IMAGES[prod.id].default;
+  
+  // State for promo mix
+  const [promoMix, setPromoMix] = useState(
+    SCENTS.reduce((acc, scent) => ({ ...acc, [scent]: 0 }), {})
+  );
+
+  const currentImage = (prod.hasScent && !prod.isPromo) 
+    ? PRODUCT_IMAGES[prod.id][selectedScent] 
+    : (PRODUCT_IMAGES[prod.id]?.default || img1);
+
+  const totalPromoSelected = Object.values(promoMix).reduce((a, b) => a + (parseInt(b)||0), 0);
+  const isValidPromo = totalPromoSelected === prod.promoQuantity;
 
   return (
     <div className="product-item">
@@ -67,13 +86,45 @@ function ProductItem({ prod, onAdd, onPreview }) {
             <span className="price-tag">{prod.price} บาท/{prod.unit}</span>
           </div>
         </div>
-        {prod.hasScent && (
+        {prod.hasScent && !prod.isPromo && (
           <select value={selectedScent} onChange={e => setSelectedScent(e.target.value)} className="scent-select">
             {SCENTS.map(scent => <option key={scent} value={scent}>กลิ่น{scent}</option>)}
           </select>
         )}
+
+        {prod.isPromo && (
+          <div className="promo-mix-container">
+            <div style={{ fontSize: '0.8rem', color: '#666', marginBottom: '8px' }}>
+              เลือกคละกลิ่น (รวมให้ครบ {prod.promoQuantity} ขวด)
+            </div>
+            {SCENTS.map(scent => (
+              <div key={scent} className="promo-mix-row">
+                <span>{scent}</span>
+                <input 
+                  type="number" 
+                  min="0" 
+                  max={prod.promoQuantity}
+                  value={promoMix[scent] === 0 ? '' : promoMix[scent]} 
+                  onChange={e => {
+                    const val = parseInt(e.target.value) || 0;
+                    setPromoMix({...promoMix, [scent]: val > prod.promoQuantity ? prod.promoQuantity : val });
+                  }}
+                  className="promo-mix-input"
+                />
+              </div>
+            ))}
+            <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: isValidPromo ? 'var(--primary-color)' : 'var(--error-color)', marginTop: '8px' }}>
+              รวม: {totalPromoSelected} / {prod.promoQuantity} ขวด
+            </div>
+          </div>
+        )}
       </div>
-      <button type="button" className="btn-add" onClick={() => onAdd(prod, selectedScent)}>
+      <button 
+        type="button" 
+        className="btn-add" 
+        onClick={() => onAdd(prod, prod.isPromo ? promoMix : selectedScent)}
+        disabled={prod.isPromo && !isValidPromo}
+      >
         + เพิ่ม
       </button>
     </div>
@@ -163,12 +214,13 @@ function App() {
   };
 
   // --- Cart Logic ---
-  const addToCart = (product, scent) => {
+  const addToCart = (product, scentOrMix) => {
     setCart([...cart, { 
       ...product, 
       cartId: Math.random().toString(), 
       quantity: 1,
-      selectedScent: product.hasScent ? scent : null
+      selectedScent: product.hasScent && !product.isPromo ? scentOrMix : null,
+      promoMix: product.isPromo ? scentOrMix : null
     }]);
   };
 
@@ -187,6 +239,7 @@ function App() {
     }
     return sum;
   }, 0);
+  const totalEarnedPoints = cart.reduce((sum, item) => sum + ((item.points || 0) * item.quantity), 0);
 
   // --- File Upload Logic ---
   const handleFileChange = (e) => {
@@ -233,10 +286,20 @@ function App() {
 
     setIsSubmitting(true);
 
+    // Calculate points per item and add to payload
+    const payloadCartItems = cart.map(item => ({
+      ...item,
+      earnedPoints: (item.points || 0) * item.quantity
+    }));
+
     // Format order summary string
-    const summaryList = cart.map(item => 
-      `${item.name}${item.hasScent ? ` (กลิ่น${item.selectedScent})` : ''} x${item.quantity} ${item.unit}`
-    ).join(' | ');
+    const summaryList = payloadCartItems.map(item => {
+      let mixStr = '';
+      if (item.promoMix) {
+        mixStr = ' (' + Object.entries(item.promoMix).filter(([k,v]) => v > 0).map(([k,v]) => `${k}:${v}`).join(', ') + ')';
+      }
+      return `${item.name}${item.hasScent && !item.isPromo ? ` (กลิ่น${item.selectedScent})` : ''}${mixStr} x${item.quantity} ${item.unit}`
+    }).join(' | ');
 
     const payload = {
       orderDate,
@@ -246,8 +309,9 @@ function App() {
       name: selectedUser.name,
       phone,
       orderSummary: summaryList,
-      cartItems: cart,
+      cartItems: payloadCartItems,
       totalPrice: totalPrice,
+      earnedPoints: totalEarnedPoints, // Send total points to GAS
       slipBase64: slipBase64,
       slipMimeType: slipMimeType
     };
@@ -278,6 +342,16 @@ function App() {
           <div className="success-icon">✅</div>
           <h2>สั่งซื้อสำเร็จ!</h2>
           <p>ระบบได้บันทึกข้อมูลการสั่งซื้อและสลิปเงินของคุณเรียบร้อยแล้ว</p>
+          
+          {totalEarnedPoints > 0 && (
+            <div className="earned-points-card">
+              <span style={{ fontSize: '2rem' }}>🌟</span>
+              <h3>ได้รับแต้มสะสม</h3>
+              <div className="points-value">{totalEarnedPoints} แต้ม</div>
+              <p style={{ fontSize: '0.85rem', color: '#666', marginTop: '10px' }}>สะสมครบ 10 แต้ม สามารถแคปหน้าจอนี้แจ้งแอดมินเพื่อแลกรับสินค้าฟรีในการสั่งซื้อรอบถัดไป!</p>
+            </div>
+          )}
+
           <button className="btn-submit" onClick={() => window.location.reload()} style={{ marginTop: '20px', width: 'auto', padding: '10px 20px' }}>
             สั่งซื้อเพิ่ม
           </button>
@@ -371,8 +445,15 @@ function App() {
                     <strong>{item.name}</strong>
                     <button type="button" className="btn-remove" onClick={() => removeCartItem(item.cartId)}>ลบ</button>
                   </div>
+                  
+                  {item.promoMix && (
+                    <div style={{ fontSize: '0.85rem', color: '#666', marginBottom: '8px' }}>
+                      <strong>สูตรคละ:</strong> {Object.entries(item.promoMix).filter(([k,v]) => v > 0).map(([k,v]) => `${k} ${v}`).join(', ')}
+                    </div>
+                  )}
+
                   <div className="cart-item-controls">
-                    {item.hasScent && (
+                    {item.hasScent && !item.isPromo && (
                       <select 
                         value={item.selectedScent} 
                         onChange={(e) => updateCartItem(item.cartId, 'selectedScent', e.target.value)}
@@ -411,6 +492,7 @@ function App() {
                 <div className="summary-col">
                   <span>ยอดชำระเงินรวมทั้งสิ้น:</span>
                   {totalDiscount > 0 && <div className="discount-summary">ประหยัดไปทั้งหมด {totalDiscount} บาท!</div>}
+                  {totalEarnedPoints > 0 && <div style={{ marginTop: '5px', color: '#f39c12', fontWeight: 'bold' }}>⭐ จะได้รับ {totalEarnedPoints} แต้มสะสม</div>}
                 </div>
                 <h2>{totalPrice} บาท</h2>
               </div>
