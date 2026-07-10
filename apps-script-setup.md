@@ -61,14 +61,7 @@ function doPost(e) {
     // วนลูปเพื่อบันทึกแต่ละรายการเป็น 1 แถว (Transaction)
     if (data.cartItems && data.cartItems.length > 0) {
       data.cartItems.forEach(item => {
-        let mixStr = '';
-        if (item.promoMix) {
-          const mixes = [];
-          for (let k in item.promoMix) { if(item.promoMix[k]>0) mixes.push(k+":"+item.promoMix[k]); }
-          if (mixes.length>0) mixStr = " (" + mixes.join(", ") + ")";
-        }
-        const itemDetail = item.name + (item.hasScent && !item.isPromo ? " (กลิ่น" + item.selectedScent + ")" : "") + mixStr;
-        
+        const itemDetail = item.name + (item.hasScent ? " (กลิ่น" + item.selectedScent + ")" : "");
         const rowData = [
           data.orderDate || "",
           data.custCode || "",
@@ -76,7 +69,7 @@ function doPost(e) {
           data.shopName || "",
           data.name || "",
           data.phone || "",
-          itemDetail,              // ชื่อสินค้าและกลิ่น (รวมโปรโมชั่นคละกลิ่น)
+          itemDetail,              // ชื่อสินค้าและกลิ่น
           item.quantity || 1,      // จำนวน
           item.price * item.quantity, // ราคารวมของรายการนี้
           slipUrl,                 // ลิงก์รูปสลิป

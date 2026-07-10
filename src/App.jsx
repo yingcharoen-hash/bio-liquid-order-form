@@ -25,9 +25,7 @@ import img7 from './assets/img7.jpg';
 const CATALOG = [
   { id: 'p1', name: 'น้ำยาชีวภาพขนาดใหญ่ 3.8 ลิตร', price: 160, originalPrice: 179, hasScent: true, unit: 'แกลลอน', points: 4 },
   { id: 'p2', name: 'น้ำยาชีวภาพขนาดเล็ก 1 ลิตร', price: 68, originalPrice: 79, hasScent: true, unit: 'แกลลอน', points: 1 },
-  { id: 'p3', name: 'จุลินทรีย์ผงขนาด 1 กิโล', price: 332, hasScent: false, unit: 'ถุง', points: 0 },
-  { id: 'promo1', name: 'โปร 10 แถม 1 (1 ลิตร)', price: 680, hasScent: true, isPromo: true, promoQuantity: 11, unit: 'ชุด', points: 10 },
-  { id: 'promo2', name: 'โปร 10 แถม 1 (3.8 ลิตร)', price: 1600, hasScent: true, isPromo: true, promoQuantity: 11, unit: 'ชุด', points: 40 }
+  { id: 'p3', name: 'จุลินทรีย์ผงขนาด 1 กิโล', price: 332, hasScent: false, unit: 'ถุง', points: 0 }
 ];
 
 const SCENTS = ['มะกรูด', 'มะนาว', 'สับปะรด'];
@@ -45,29 +43,12 @@ const PRODUCT_IMAGES = {
   },
   p3: {
     default: img1
-  },
-  promo1: {
-    default: img2 // ใช้รูปขวดเล็กเป็นหน้าปก
-  },
-  promo2: {
-    default: img7 // ใช้รูปขวดใหญ่เป็นหน้าปก
   }
 };
 
 function ProductItem({ prod, onAdd, onPreview }) {
   const [selectedScent, setSelectedScent] = useState(SCENTS[0]);
-  
-  // State for promo mix
-  const [promoMix, setPromoMix] = useState(
-    SCENTS.reduce((acc, scent) => ({ ...acc, [scent]: 0 }), {})
-  );
-
-  const currentImage = (prod.hasScent && !prod.isPromo) 
-    ? PRODUCT_IMAGES[prod.id][selectedScent] 
-    : (PRODUCT_IMAGES[prod.id]?.default || img1);
-
-  const totalPromoSelected = Object.values(promoMix).reduce((a, b) => a + (parseInt(b)||0), 0);
-  const isValidPromo = totalPromoSelected === prod.promoQuantity;
+  const currentImage = prod.hasScent ? PRODUCT_IMAGES[prod.id][selectedScent] : PRODUCT_IMAGES[prod.id].default;
 
   return (
     <div className="product-item">
@@ -86,44 +67,16 @@ function ProductItem({ prod, onAdd, onPreview }) {
             <span className="price-tag">{prod.price} บาท/{prod.unit}</span>
           </div>
         </div>
-        {prod.hasScent && !prod.isPromo && (
+        {prod.hasScent && (
           <select value={selectedScent} onChange={e => setSelectedScent(e.target.value)} className="scent-select">
             {SCENTS.map(scent => <option key={scent} value={scent}>กลิ่น{scent}</option>)}
           </select>
-        )}
-
-        {prod.isPromo && (
-          <div className="promo-mix-container">
-            <div style={{ fontSize: '0.8rem', color: '#666', marginBottom: '8px' }}>
-              เลือกคละกลิ่น (รวมให้ครบ {prod.promoQuantity} ขวด)
-            </div>
-            {SCENTS.map(scent => (
-              <div key={scent} className="promo-mix-row">
-                <span>{scent}</span>
-                <input 
-                  type="number" 
-                  min="0" 
-                  max={prod.promoQuantity}
-                  value={promoMix[scent] === 0 ? '' : promoMix[scent]} 
-                  onChange={e => {
-                    const val = parseInt(e.target.value) || 0;
-                    setPromoMix({...promoMix, [scent]: val > prod.promoQuantity ? prod.promoQuantity : val });
-                  }}
-                  className="promo-mix-input"
-                />
-              </div>
-            ))}
-            <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: isValidPromo ? 'var(--primary-color)' : 'var(--error-color)', marginTop: '8px' }}>
-              รวม: {totalPromoSelected} / {prod.promoQuantity} ขวด
-            </div>
-          </div>
         )}
       </div>
       <button 
         type="button" 
         className="btn-add" 
-        onClick={() => onAdd(prod, prod.isPromo ? promoMix : selectedScent)}
-        disabled={prod.isPromo && !isValidPromo}
+        onClick={() => onAdd(prod, selectedScent)}
       >
         + เพิ่ม
       </button>
@@ -214,13 +167,12 @@ function App() {
   };
 
   // --- Cart Logic ---
-  const addToCart = (product, scentOrMix) => {
+  const addToCart = (product, scent) => {
     setCart([...cart, { 
       ...product, 
       cartId: Math.random().toString(), 
       quantity: 1,
-      selectedScent: product.hasScent && !product.isPromo ? scentOrMix : null,
-      promoMix: product.isPromo ? scentOrMix : null
+      selectedScent: product.hasScent ? scent : null
     }]);
   };
 
@@ -232,14 +184,50 @@ function App() {
     setCart(cart.filter(item => item.cartId !== cartId));
   };
 
-  const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const totalDiscount = cart.reduce((sum, item) => {
-    if (item.originalPrice && item.originalPrice > item.price) {
-      return sum + ((item.originalPrice - item.price) * item.quantity);
+  // Calculate Group Stats for Promotions (Buy 10 Get 1 Free)
+  const getGroupStats = () => {
+    const stats = {};
+    cart.forEach(item => {
+      if (!stats[item.id]) stats[item.id] = { qty: 0, price: item.price, points: item.points || 0, originalPrice: item.originalPrice, name: item.name };
+      stats[item.id].qty += item.quantity;
+    });
+    return stats;
+  };
+
+  const groupStats = getGroupStats();
+  
+  let totalPrice = 0;
+  let totalDiscount = 0;
+  let totalEarnedPoints = 0;
+  let promoAlerts = [];
+  let freeGiftsReceived = [];
+
+  Object.keys(groupStats).forEach(id => {
+    let stat = groupStats[id];
+    let cost = stat.qty * stat.price;
+    let earnedPts = stat.qty * stat.points;
+    let regDiscount = stat.originalPrice && stat.originalPrice > stat.price ? (stat.originalPrice - stat.price) * stat.qty : 0;
+    
+    // Auto Buy 10 Get 1 Free logic (Every 11th item is free)
+    let freeQty = Math.floor(stat.qty / 11);
+    if (freeQty > 0) {
+      let promoDisc = freeQty * stat.price;
+      cost -= promoDisc;
+      earnedPts -= freeQty * stat.points; // Free item doesn't give points
+      totalDiscount += promoDisc; // Add free item price to total discount
+      freeGiftsReceived.push(`แถมฟรี ${stat.name} x${freeQty}`);
     }
-    return sum;
-  }, 0);
-  const totalEarnedPoints = cart.reduce((sum, item) => sum + ((item.points || 0) * item.quantity), 0);
+
+    // Alert if they have 10, 21, 32... meaning they just need 1 more for a free item
+    if (stat.qty % 11 >= 10) {
+      const missing = 11 - (stat.qty % 11);
+      promoAlerts.push(`คุณซื้อ ${stat.name} ครบ 10 ขวดแล้ว! 🎉 กดเพิ่มอีก ${missing} ขวดเพื่อรับฟรีทันที!`);
+    }
+
+    totalPrice += cost;
+    totalDiscount += regDiscount;
+    totalEarnedPoints += earnedPts;
+  });
 
   // --- File Upload Logic ---
   const handleFileChange = (e) => {
@@ -286,20 +274,20 @@ function App() {
 
     setIsSubmitting(true);
 
-    // Calculate points per item and add to payload
+    // Calculate points per item and add to payload (distribute free item discount conceptually, but practically we just send total)
     const payloadCartItems = cart.map(item => ({
       ...item,
       earnedPoints: (item.points || 0) * item.quantity
     }));
 
     // Format order summary string
-    const summaryList = payloadCartItems.map(item => {
-      let mixStr = '';
-      if (item.promoMix) {
-        mixStr = ' (' + Object.entries(item.promoMix).filter(([k,v]) => v > 0).map(([k,v]) => `${k}:${v}`).join(', ') + ')';
-      }
-      return `${item.name}${item.hasScent && !item.isPromo ? ` (กลิ่น${item.selectedScent})` : ''}${mixStr} x${item.quantity} ${item.unit}`
+    let summaryList = payloadCartItems.map(item => {
+      return `${item.name}${item.hasScent ? ` (กลิ่น${item.selectedScent})` : ''} x${item.quantity} ${item.unit}`
     }).join(' | ');
+    
+    if (freeGiftsReceived.length > 0) {
+      summaryList += ` | [PROMO: ${freeGiftsReceived.join(', ')}]`;
+    }
 
     const payload = {
       orderDate,
@@ -445,15 +433,9 @@ function App() {
                     <strong>{item.name}</strong>
                     <button type="button" className="btn-remove" onClick={() => removeCartItem(item.cartId)}>ลบ</button>
                   </div>
-                  
-                  {item.promoMix && (
-                    <div style={{ fontSize: '0.85rem', color: '#666', marginBottom: '8px' }}>
-                      <strong>สูตรคละ:</strong> {Object.entries(item.promoMix).filter(([k,v]) => v > 0).map(([k,v]) => `${k} ${v}`).join(', ')}
-                    </div>
-                  )}
 
                   <div className="cart-item-controls">
-                    {item.hasScent && !item.isPromo && (
+                    {item.hasScent && (
                       <select 
                         value={item.selectedScent} 
                         onChange={(e) => updateCartItem(item.cartId, 'selectedScent', e.target.value)}
@@ -487,6 +469,21 @@ function App() {
                   </div>
                 </div>
               ))}
+              
+              {promoAlerts.length > 0 && (
+                <div className="promo-alert">
+                  {promoAlerts.map((msg, idx) => (
+                    <div key={idx}>{msg}</div>
+                  ))}
+                </div>
+              )}
+
+              {freeGiftsReceived.length > 0 && (
+                <div className="free-gift-alert">
+                  <strong>🎁 ได้รับสิทธิ์:</strong> {freeGiftsReceived.join(' และ ')} <br/>
+                  <small>(ระบบหักราคาขวดที่แถมออกจากยอดรวมให้แล้ว)</small>
+                </div>
+              )}
               
               <div className="total-summary">
                 <div className="summary-col">
