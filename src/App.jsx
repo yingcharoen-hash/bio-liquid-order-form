@@ -421,7 +421,17 @@ function App() {
 
           <div className="form-group">
             <label className="required">3. เบอร์โทรติดต่อ</label>
-            <input type="tel" placeholder="08X-XXX-XXXX" value={phone} onChange={(e) => setPhone(e.target.value)} required />
+            <input 
+              type="tel" 
+              placeholder="08X-XXX-XXXX" 
+              value={phone} 
+              maxLength="10"
+              onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, ''); // บังคับกรอกแต่ตัวเลข
+                setPhone(val);
+              }} 
+              required 
+            />
           </div>
 
           {/* Catalog Section */}
