@@ -168,12 +168,23 @@ function App() {
 
   // --- Cart Logic ---
   const addToCart = (product, scent) => {
-    setCart([...cart, { 
-      ...product, 
-      cartId: Math.random().toString(), 
-      quantity: 1,
-      selectedScent: product.hasScent ? scent : null
-    }]);
+    const existingItemIndex = cart.findIndex(item => 
+      item.id === product.id && 
+      (!product.hasScent || item.selectedScent === scent)
+    );
+
+    if (existingItemIndex !== -1) {
+      const newCart = [...cart];
+      newCart[existingItemIndex].quantity += 1;
+      setCart(newCart);
+    } else {
+      setCart([...cart, { 
+        ...product, 
+        cartId: Math.random().toString(), 
+        quantity: 1,
+        selectedScent: product.hasScent ? scent : null
+      }]);
+    }
   };
 
   const updateCartItem = (cartId, field, value) => {
@@ -416,6 +427,9 @@ function App() {
           {/* Catalog Section */}
           <div className="form-group catalog-section">
             <label className="required">4. เลือกสินค้าที่ต้องการ</label>
+            <div className="promo-banner-main">
+              🔥 <strong>โปรโมชั่นพิเศษสุดคุ้ม!</strong> ซื้อน้ำยาขนาดเดียวกัน ครบ 10 แกลลอน <strong>รับฟรีทันที 1 แกลลอน!</strong> (คละกลิ่นได้ ระบบจะหักราคาให้อัตโนมัติเมื่อหยิบใส่ตะกร้าครบ 11 ชิ้น)
+            </div>
             <div className="product-list">
               {CATALOG.map(prod => (
                 <ProductItem key={prod.id} prod={prod} onAdd={addToCart} onPreview={setPreviewImage} />
