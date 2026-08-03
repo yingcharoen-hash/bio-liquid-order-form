@@ -319,6 +319,7 @@ function App() {
 
       return {
         ...item,
+        freeQty: freeItemsHere,
         earnedPoints: (item.points || 0) * (item.quantity - freeItemsHere),
         originalPriceTotal: originalPriceTotal,
         discountTotal: totalItemDiscount,

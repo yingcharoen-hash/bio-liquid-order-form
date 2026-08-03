@@ -57,11 +57,26 @@ function doPost(e) {
     // เปิด Google Sheet เป้าหมาย
     const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
     
+    // ฟังก์ชันหาบรรทัดล่างสุดที่มีข้อมูลจริงๆ ในคอลัมน์ A (ป้องกันปัญหาข้อมูลโดดไปบรรทัด 1000)
+    function getActualLastRow() {
+      const dataA = sheet.getRange("A:A").getValues();
+      for (let i = dataA.length - 1; i >= 0; i--) {
+        if (dataA[i][0] !== "") {
+          return i + 1;
+        }
+      }
+      return 1; // ถ้าไม่มีข้อมูลเลย ให้เริ่มบรรทัดที่ 2 (สมมติบรรทัด 1 เป็นหัวตาราง)
+    }
+
     // data.cartItems เป็น Array ของสินค้าที่สั่งซื้อ
     // วนลูปเพื่อบันทึกแต่ละรายการเป็น 1 แถว (Transaction)
     if (data.cartItems && data.cartItems.length > 0) {
       data.cartItems.forEach(item => {
-        const itemDetail = item.name + (item.hasScent ? " (กลิ่น" + item.selectedScent + ")" : "");
+        let itemDetail = item.name + (item.hasScent ? " (กลิ่น" + item.selectedScent + ")" : "");
+        if (item.freeQty > 0) {
+          itemDetail += ` [รวมแถมฟรี ${item.freeQty} ${item.unit || "ชิ้น"}]`;
+        }
+        
         const rowData = [
           data.orderDate || "",            // 1. วันที่สั่งซื้อ
           data.custCode || "",             // 2. รหัสลูกค้า
@@ -79,7 +94,8 @@ function doPost(e) {
           new Date(),                      // 14. Timestamp
           item.earnedPoints || 0           // 15. แต้มสะสมที่ได้จากรายการนี้
         ];
-        sheet.appendRow(rowData);
+        const lastRow = getActualLastRow();
+        sheet.getRange(lastRow + 1, 1, 1, rowData.length).setValues([rowData]);
       });
     } else {
       // กรณีไม่มีตะกร้า (เผื่อไว้)
@@ -100,7 +116,8 @@ function doPost(e) {
         new Date(),
         data.earnedPoints || 0
       ];
-      sheet.appendRow(rowData);
+      const lastRow = getActualLastRow();
+      sheet.getRange(lastRow + 1, 1, 1, rowData.length).setValues([rowData]);
     }
     
     return ContentService.createTextOutput(JSON.stringify({ status: "success", message: "Saved successfully!" }))
