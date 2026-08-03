@@ -262,6 +262,17 @@ function App() {
     }
   };
 
+  // Generate Order ID
+  const generateOrderId = () => {
+    const prefix = "ORD";
+    const date = new Date();
+    const d = date.getFullYear().toString() + 
+              (date.getMonth() + 1).toString().padStart(2, '0') + 
+              date.getDate().toString().padStart(2, '0');
+    const rand = Math.floor(1000 + Math.random() * 9000);
+    return `${prefix}${d}-${rand}`;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
@@ -285,11 +296,35 @@ function App() {
 
     setIsSubmitting(true);
 
-    // Calculate points per item and add to payload (distribute free item discount conceptually, but practically we just send total)
-    const payloadCartItems = cart.map(item => ({
-      ...item,
-      earnedPoints: (item.points || 0) * item.quantity
-    }));
+    // Prepare group stats for free item distribution
+    const distGroupStats = getGroupStats();
+    Object.keys(distGroupStats).forEach(id => {
+       distGroupStats[id].freeQtyRemaining = Math.floor(distGroupStats[id].qty / 11);
+    });
+
+    // Calculate points and discounts per item
+    const payloadCartItems = cart.map(item => {
+      let originalPriceTotal = (item.originalPrice || item.price) * item.quantity;
+      let memberDiscountTotal = ((item.originalPrice || item.price) - item.price) * item.quantity;
+      
+      let freeItemsHere = 0;
+      if (distGroupStats[item.id] && distGroupStats[item.id].freeQtyRemaining > 0) {
+         freeItemsHere = Math.min(item.quantity, distGroupStats[item.id].freeQtyRemaining);
+         distGroupStats[item.id].freeQtyRemaining -= freeItemsHere;
+      }
+      
+      let promoDiscountTotal = freeItemsHere * item.price;
+      let totalItemDiscount = memberDiscountTotal + promoDiscountTotal;
+      let finalPriceTotal = originalPriceTotal - totalItemDiscount;
+
+      return {
+        ...item,
+        earnedPoints: (item.points || 0) * (item.quantity - freeItemsHere),
+        originalPriceTotal: originalPriceTotal,
+        discountTotal: totalItemDiscount,
+        finalPriceTotal: finalPriceTotal
+      };
+    });
 
     // Format order summary string
     let summaryList = payloadCartItems.map(item => {
@@ -301,6 +336,7 @@ function App() {
     }
 
     const payload = {
+      orderId: generateOrderId(),
       orderDate,
       custCode: selectedUser.CustCode,
       boothCode: selectedUser.BoothCode,
@@ -310,6 +346,7 @@ function App() {
       orderSummary: summaryList,
       cartItems: payloadCartItems,
       totalPrice: totalPrice,
+      totalDiscount: totalDiscount,
       earnedPoints: totalEarnedPoints, // Send total points to GAS
       slipBase64: slipBase64,
       slipMimeType: slipMimeType

@@ -63,18 +63,21 @@ function doPost(e) {
       data.cartItems.forEach(item => {
         const itemDetail = item.name + (item.hasScent ? " (กลิ่น" + item.selectedScent + ")" : "");
         const rowData = [
-          data.orderDate || "",
-          data.custCode || "",
-          data.boothCode || "",
-          data.shopName || "",
-          data.name || "",
-          data.phone || "",
-          itemDetail,              // ชื่อสินค้าและกลิ่น
-          item.quantity || 1,      // จำนวน
-          item.price * item.quantity, // ราคารวมของรายการนี้
-          slipUrl,                 // ลิงก์รูปสลิป
-          new Date(),              // Timestamp
-          item.earnedPoints || 0   // [คอลัมน์ใหม่] แต้มสะสมที่ได้จากรายการนี้
+          data.orderDate || "",            // 1. วันที่สั่งซื้อ
+          data.custCode || "",             // 2. รหัสลูกค้า
+          data.boothCode || "",            // 3. รหัสบูธ
+          data.shopName || "",             // 4. ชื่อร้าน
+          data.name || "",                 // 5. ผู้เช่า
+          data.phone || "",                // 6. เบอร์โทร
+          data.orderId || "",              // 7. เลขที่ใบสั่งซื้อ
+          itemDetail,                      // 8. ชื่อสินค้าและกลิ่น
+          item.quantity || 1,              // 9. จำนวน
+          item.originalPriceTotal || 0,    // 10. ราคาก่อนหักส่วนลด
+          item.discountTotal || 0,         // 11. ยอดส่วนลดรวม
+          item.finalPriceTotal || 0,       // 12. ราคาหลังหักส่วนลด (ยอดสุทธิ)
+          slipUrl,                         // 13. ลิงก์รูปสลิป
+          new Date(),                      // 14. Timestamp
+          item.earnedPoints || 0           // 15. แต้มสะสมที่ได้จากรายการนี้
         ];
         sheet.appendRow(rowData);
       });
@@ -87,8 +90,11 @@ function doPost(e) {
         data.shopName || "",
         data.name || "",
         data.phone || "",
+        data.orderId || "",
         data.orderSummary || "",  
         1,
+        (data.totalPrice + (data.totalDiscount || 0)) || 0, 
+        data.totalDiscount || 0,
         data.totalPrice || 0,     
         slipUrl,                  
         new Date(),
