@@ -98,7 +98,8 @@ function App() {
   // Cart State
   const [cart, setCart] = useState([]);
   
-  // File State
+  // File and Payment State
+  const [paymentMethod, setPaymentMethod] = useState('transfer');
   const [slipFile, setSlipFile] = useState(null);
   const [slipBase64, setSlipBase64] = useState('');
   const [slipMimeType, setSlipMimeType] = useState('');
@@ -289,7 +290,7 @@ function App() {
       setErrorMsg('กรุณาเลือกสินค้าที่ต้องการสั่งซื้ออย่างน้อย 1 รายการ');
       return;
     }
-    if (!slipBase64) {
+    if (paymentMethod === 'transfer' && !slipBase64) {
       setErrorMsg('กรุณาแนบสลิปโอนเงิน');
       return;
     }
@@ -348,7 +349,8 @@ function App() {
       cartItems: payloadCartItems,
       totalPrice: totalPrice,
       totalDiscount: totalDiscount,
-      earnedPoints: totalEarnedPoints, // Send total points to GAS
+      earnedPoints: totalEarnedPoints, 
+      paymentMethod: paymentMethod,
       slipBase64: slipBase64,
       slipMimeType: slipMimeType
     };
@@ -561,29 +563,50 @@ function App() {
           {/* Payment Section */}
           {totalPrice > 0 && (
             <div className="payment-section">
-              <label className="required">5. ชำระเงินและแนบสลิป</label>
-              <div className="bank-card">
-                <div className="bank-logo">KTB</div>
-                <div className="bank-details">
-                  <strong>ธนาคารกรุงไทย</strong>
-                  <p>บจก.สุวพีร์โฮลดิ้ง 2</p>
-                  <h3>976-0-40781-7</h3>
-                </div>
-              </div>
-              <p style={{marginTop: '10px', fontSize: '0.9rem', color: '#555'}}>ยอดที่ต้องโอน: <strong>{totalPrice} บาท</strong></p>
+              <label className="required">5. เลือกช่องทางการชำระเงิน</label>
               
-              <div className="file-upload-wrapper">
-                <label className="file-upload-btn">
-                  แนบสลิปโอนเงิน
-                  <input type="file" accept="image/*" onChange={handleFileChange} />
+              <div className="payment-options" style={{ display: 'flex', gap: '20px', marginBottom: '15px', marginTop: '10px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <input type="radio" name="paymentMethod" value="transfer" checked={paymentMethod === 'transfer'} onChange={(e) => setPaymentMethod(e.target.value)} />
+                  โอนเงิน (แนบสลิป)
                 </label>
-                {slipFile && <span className="file-name">📎 {slipFile.name}</span>}
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <input type="radio" name="paymentMethod" value="cash" checked={paymentMethod === 'cash'} onChange={(e) => setPaymentMethod(e.target.value)} />
+                  ชำระเงินสด
+                </label>
               </div>
+
+              {paymentMethod === 'transfer' ? (
+                <>
+                  <div className="bank-card">
+                    <div className="bank-logo">KTB</div>
+                    <div className="bank-details">
+                      <strong>ธนาคารกรุงไทย</strong>
+                      <p>บจก.สุวพีร์โฮลดิ้ง 2</p>
+                      <h3>976-0-40781-7</h3>
+                    </div>
+                  </div>
+                  <p style={{marginTop: '10px', fontSize: '0.9rem', color: '#555'}}>ยอดที่ต้องโอน: <strong>{totalPrice} บาท</strong></p>
+                  
+                  <div className="file-upload-wrapper">
+                    <label className="file-upload-btn">
+                      แนบสลิปโอนเงิน
+                      <input type="file" accept="image/*" onChange={handleFileChange} />
+                    </label>
+                    {slipFile && <span className="file-name">📎 {slipFile.name}</span>}
+                  </div>
+                </>
+              ) : (
+                <div style={{ padding: '15px', backgroundColor: '#fff3cd', color: '#856404', borderRadius: '8px', border: '1px solid #ffeeba' }}>
+                  💰 ยอดที่ต้องชำระ: <strong>{totalPrice} บาท</strong> <br/>
+                  (กรุณาเตรียมเงินสดให้พอดี เพื่อชำระกับพนักงานจัดส่ง)
+                </div>
+              )}
             </div>
           )}
 
-          <button type="submit" className="btn-submit" disabled={isSubmitting || !selectedUser || !phone || cart.length === 0 || !slipBase64}>
-            {isSubmitting ? <><span className="loader"></span> กำลังบันทึกข้อมูลและอัปโหลด...</> : 'ยืนยันสั่งซื้อ'}
+          <button type="submit" className="btn-submit" disabled={isSubmitting || !selectedUser || !phone || cart.length === 0 || (paymentMethod === 'transfer' && !slipBase64)}>
+            {isSubmitting ? <><span className="loader"></span> กำลังบันทึกข้อมูล...</> : 'ยืนยันสั่งซื้อ'}
           </button>
 
         </form>

@@ -36,7 +36,9 @@ function doPost(e) {
     
     // --- ส่วนจัดการอัปโหลดภาพสลิป ---
     let slipUrl = "ไม่มีการแนบสลิป";
-    if (data.slipBase64) {
+    if (data.paymentMethod === 'cash') {
+      slipUrl = "ชำระเงินสด";
+    } else if (data.slipBase64) {
       try {
         // ถอดรหัส Base64
         const decodedImage = Utilities.base64Decode(data.slipBase64);
@@ -71,11 +73,33 @@ function doPost(e) {
     // data.cartItems เป็น Array ของสินค้าที่สั่งซื้อ
     // วนลูปเพื่อบันทึกแต่ละรายการเป็น 1 แถว (Transaction)
     if (data.cartItems && data.cartItems.length > 0) {
-      data.cartItems.forEach(item => {
-        let itemDetail = item.name + (item.hasScent ? " (กลิ่น" + item.selectedScent + ")" : "");
-        if (item.freeQty > 0) {
-          itemDetail += ` [รวมแถมฟรี ${item.freeQty} ${item.unit || "ชิ้น"}]`;
+      // 🚀 สร้าง Order ID ลำดับของวัน (รันบนเซิร์ฟเวอร์)
+      const lastRow = getActualLastRow();
+      const today = new Date();
+      const d = today.getFullYear().toString() + 
+                (today.getMonth() + 1).toString().padStart(2, '0') + 
+                today.getDate().toString().padStart(2, '0');
+      const orderPrefix = `ORD${d}-`;
+      let nextSeq = 1;
+
+      if (lastRow >= 2) {
+        const orderIds = sheet.getRange(2, 7, lastRow - 1, 1).getValues(); // Column 7 คือ Order ID
+        for (let i = orderIds.length - 1; i >= 0; i--) {
+          const id = orderIds[i][0];
+          if (id && id.toString().startsWith(orderPrefix)) {
+            const seqStr = id.toString().split('-')[1];
+            const seqInt = parseInt(seqStr, 10);
+            if (!isNaN(seqInt)) {
+              nextSeq = seqInt + 1;
+              break;
+            }
+          }
         }
+      }
+      const finalOrderId = orderPrefix + nextSeq.toString().padStart(4, '0');
+
+      data.cartItems.forEach(item => {
+        const itemDetail = item.name + (item.hasScent ? " (กลิ่น" + item.selectedScent + ")" : "");
         
         const rowData = [
           data.orderDate || "",            // 1. วันที่สั่งซื้อ
@@ -84,18 +108,20 @@ function doPost(e) {
           data.shopName || "",             // 4. ชื่อร้าน
           data.name || "",                 // 5. ผู้เช่า
           data.phone || "",                // 6. เบอร์โทร
-          data.orderId || "",              // 7. เลขที่ใบสั่งซื้อ
+          finalOrderId,                    // 7. เลขที่ใบสั่งซื้อ (รันลำดับ)
           itemDetail,                      // 8. ชื่อสินค้าและกลิ่น
-          item.quantity || 1,              // 9. จำนวน
-          item.originalPriceTotal || 0,    // 10. ราคาก่อนหักส่วนลด
-          item.discountTotal || 0,         // 11. ยอดส่วนลดรวม
-          item.finalPriceTotal || 0,       // 12. ราคาหลังหักส่วนลด (ยอดสุทธิ)
-          slipUrl,                         // 13. ลิงก์รูปสลิป
-          new Date(),                      // 14. Timestamp
-          item.earnedPoints || 0           // 15. แต้มสะสมที่ได้จากรายการนี้
+          item.quantity || 1,              // 9. จำนวนรวมทั้งหมด
+          item.freeQty || 0,               // 10. จำนวนของแถม (แยกคอลัมน์)
+          item.originalPriceTotal || 0,    // 11. ราคาก่อนหักส่วนลด
+          item.discountTotal || 0,         // 12. ยอดส่วนลดรวม
+          item.finalPriceTotal || 0,       // 13. ราคาหลังหักส่วนลด (ยอดสุทธิ)
+          slipUrl,                         // 14. ลิงก์รูปสลิป
+          new Date(),                      // 15. Timestamp
+          item.earnedPoints || 0           // 16. แต้มสะสมที่ได้จากรายการนี้
         ];
-        const lastRow = getActualLastRow();
-        sheet.getRange(lastRow + 1, 1, 1, rowData.length).setValues([rowData]);
+        
+        const currentRow = getActualLastRow();
+        sheet.getRange(currentRow + 1, 1, 1, rowData.length).setValues([rowData]);
       });
     } else {
       // กรณีไม่มีตะกร้า (เผื่อไว้)
@@ -106,9 +132,10 @@ function doPost(e) {
         data.shopName || "",
         data.name || "",
         data.phone || "",
-        data.orderId || "",
+        "N/A", // orderId placeholder
         data.orderSummary || "",  
         1,
+        0, // จำนวนของแถม
         (data.totalPrice + (data.totalDiscount || 0)) || 0, 
         data.totalDiscount || 0,
         data.totalPrice || 0,     
@@ -116,8 +143,8 @@ function doPost(e) {
         new Date(),
         data.earnedPoints || 0
       ];
-      const lastRow = getActualLastRow();
-      sheet.getRange(lastRow + 1, 1, 1, rowData.length).setValues([rowData]);
+      const currentRow = getActualLastRow();
+      sheet.getRange(currentRow + 1, 1, 1, rowData.length).setValues([rowData]);
     }
     
     return ContentService.createTextOutput(JSON.stringify({ status: "success", message: "Saved successfully!" }))
